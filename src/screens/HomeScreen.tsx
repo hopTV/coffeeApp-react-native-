@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import React, {useRef, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -10,44 +11,81 @@ import {
   FlatList,
   Dimensions,
   SafeAreaView,
+  ToastAndroid,
 } from 'react-native';
 import {COLORS} from '../theme/theme';
 import HeaderBar from '../components/HeaderBar';
 import Icon from 'react-native-vector-icons/AntDesign';
 import {useStore} from '../store/store';
 import CoffeeCart from '../components/CoffeeCart';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 
-const getCateoriesFromData = (data: any) => {
+const getCategoriesFromData = (data: any) => {
   let temp: any = {};
   for (let i = 0; i < data.length; i++) {
-    if (temp[data[i].name] == undefined) {
+    if (temp[data[i].name] === undefined) {
       temp[data[i].name] = 1;
     } else {
       temp[data[i].name]++;
     }
-    let categories = Object.keys(temp);
-    console.log(temp, 'category');
-    
-    categories.unshift('All');
-    return categories;
   }
+  let categories = Object.keys(temp);
+  categories.unshift('All');
+  return categories;
 };
-
 const HomeScreen = ({navigation}: any) => {
   const coffeeList = useStore((state: any) => state.CoffeeList);
-console.log(coffeeList, 'aaaaa');
+  const BeanList = useStore((state: any) => state.BeansData);
+  const addToCart = useStore((state: any) => state.addToCart);
+  const calculateCartPrice = useStore((state: any) => state.calculateCartPrice);
 
   const [serchText, setSearchText] = useState('');
-  const [categories, setCategories] = useState(
-    getCateoriesFromData(coffeeList),
-  );
+  const categories = getCategoriesFromData(coffeeList);
+  const [activeCategory, setActiveCategory] = useState('All');
   const [dataList, setDataList] = useState(coffeeList);
 
   const ListRef = useRef<FlatList>();
+  const tabBarHeight = useBottomTabBarHeight();
 
-  const handleSearchCoffee = (value: string) => {
-    console.log(value);
+  const handleSearchCoffee = (text: string) => {
+    if (text.trim() !== '') {
+      ListRef.current?.scrollToOffset({
+        animated: true,
+        offset: 0,
+      });
+      setActiveCategory('All');
+      setDataList([
+        ...coffeeList.filter((item: any) =>
+          item.name.toLowerCase().includes(text.toLowerCase()),
+        ),
+      ]);
+    } else {
+      setDataList(coffeeList);
+    }
   };
+
+  const handeleSortCategory = (value: any) => {
+    if (value === 'All') {
+      setDataList(coffeeList);
+    } else {
+      setDataList(coffeeList.filter((item: any) => item.name === value));
+    }
+    setActiveCategory(value);
+    ListRef?.current?.scrollToOffset({
+      animated: true,
+      offset: 0,
+    });
+  };
+
+  const handleAddTocart = useCallback((data: any) => {
+    addToCart(data);
+    calculateCartPrice();
+    ToastAndroid.showWithGravity(
+      `${data.name} iss Added to cart`,
+      ToastAndroid.SHORT,
+      ToastAndroid.CENTER,
+    );
+  }, []);
 
   return (
     <View className="flex-1 bg-black">
@@ -78,6 +116,7 @@ console.log(coffeeList, 'aaaaa');
             value={serchText}
             onChangeText={text => {
               setSearchText(text);
+              handleSearchCoffee(text);
             }}
             placeholderTextColor={COLORS.primaryLightGreyHex}
             className="flex-1 h-[40px] text-sm text-white"
@@ -94,25 +133,30 @@ console.log(coffeeList, 'aaaaa');
             <View key={index.toString()} className="px-4">
               <TouchableOpacity
                 className="flex items-center"
-                onPress={() => {
-                  ListRef.current?.scrollToOffset({
-                    animated: true,
-                    offset: 0,
-                  });
-                }}>
-                <Text className={'font-bold text-base text-gray-500 mb-1'}>
+                onPress={() => handeleSortCategory(data)}>
+                <Text
+                  className={`${
+                    activeCategory === data
+                      ? 'text-orange-500'
+                      : ' text-gray-500'
+                  } font-bold text-base mb-1`}>
                   {data}
                 </Text>
               </TouchableOpacity>
             </View>
           ))}
         </ScrollView>
-        <SafeAreaView className="flex flex-col w-full justify-center py-4 px-7">
+        <SafeAreaView>
           <FlatList
             // ref={ListRef}
             data={dataList}
             horizontal
             keyExtractor={item => item.id}
+            contentContainerStyle={{
+              gap: 20,
+              paddingVertical: 20,
+              paddingHorizontal: 30,
+            }}
             ListEmptyComponent={
               <View
                 className=""
@@ -120,9 +164,37 @@ console.log(coffeeList, 'aaaaa');
                 <Text className="text-white ">No coffee Available</Text>
               </View>
             }
-            renderItem={item => (
-              <TouchableOpacity className="ml-10 mt-2">
-                <CoffeeCart dataCoffee={item} />
+            renderItem={({item}) => (
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.push('Detail', {
+                    data: item,
+                  });
+                }}>
+                <CoffeeCart dataCoffee={item} onAddToCart={handleAddTocart} />
+              </TouchableOpacity>
+            )}></FlatList>
+        </SafeAreaView>
+        <Text className="text-white text-base px-6">Coffee Beans</Text>
+        <SafeAreaView>
+          <FlatList
+            horizontal
+            data={BeanList}
+            contentContainerStyle={{
+              gap: 20,
+              paddingVertical: 20,
+              paddingHorizontal: 30,
+              marginBottom: tabBarHeight,
+            }}
+            keyExtractor={item => item.id}
+            renderItem={({item}) => (
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.push('Detail', {
+                    data: item,
+                  });
+                }}>
+                <CoffeeCart dataCoffee={item} onAddToCart={handleAddTocart} />
               </TouchableOpacity>
             )}></FlatList>
         </SafeAreaView>
