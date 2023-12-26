@@ -26,6 +26,8 @@ const getCateoriesFromData = (data: any) => {
       temp[data[i].name]++;
     }
     let categories = Object.keys(temp);
+    console.log(temp, 'category');
+    
     categories.unshift('All');
     return categories;
   }
@@ -33,6 +35,7 @@ const getCateoriesFromData = (data: any) => {
 
 const HomeScreen = ({navigation}: any) => {
   const coffeeList = useStore((state: any) => state.CoffeeList);
+console.log(coffeeList, 'aaaaa');
 
   const [serchText, setSearchText] = useState('');
   const [categories, setCategories] = useState(
