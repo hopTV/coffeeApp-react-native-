@@ -5,6 +5,10 @@
  * @format
  */
 
+if (__DEV__) {
+  import('./ReactotronConfig').then(() => console.log('Reactotron Configured'));
+}
+
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -15,6 +19,8 @@ import PaymentScreen from './src/screens/PaymentScreen';
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+  console.log(111111, 'aaaa');
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
